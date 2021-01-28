@@ -18,6 +18,7 @@ class Business {
     }
     async _init() {
         this.view.configureRecordButton(this.onRecordPressed.bind(this))
+        this.view.configureLeaveButton(this.onLeavePressed.bind(this))
         this.currentStream = await this.media.getCamera()
         this.socket = this.socketBuilder
             .setOnUserConnected(this.onUserConnected())
@@ -40,8 +41,12 @@ class Business {
         if (this.recordingEnabled) {
             recorderInstance.startRecording()
         }
-        const isCurrentId = false;
-        this.view.renderVideo({ userId, muted: false, stream, isCurrentId })
+        const isCurrentId = userId === this.currentPeer.id;
+        this.view.renderVideo({
+            userId,
+            stream,
+            isCurrentId
+        })
     }
 
     onUserConnected() {
@@ -58,7 +63,9 @@ class Business {
                 this.peers.delete(userId)
             }
             this.view.setParticipants(this.peers.size)
+            this.stopRecording(userId)
             this.view.removeVideoElement(userId)
+
         };
     }
 
@@ -86,6 +93,7 @@ class Business {
     onPeerStreamReceived() {
         return (call, stream) => {
             const callerId = call.peer;
+            if (this.this.peers.has(callerId)) return;
             this.addVideoStream(callerId, stream)
             this.peers.set(callerId, { call })
             this.view.setParticipants(this.peers.size)
@@ -114,7 +122,10 @@ class Business {
             }
             this.stopRecording(key)
         }
+    }
 
+    onLeavePressed() {
+        this.userRecordings.forEach((value, key) => value.download())
     }
 
     async stopRecording(userId) {
@@ -128,6 +139,15 @@ class Business {
             if (!isRecordingActive) continue;
 
             await rec.stopRecording()
+            this.playRecordings(key)
         }
+    }
+
+    playRecordings(userId) {
+        const user = this.userRecordings.get(userId)
+        const videoURLs = user.getAllVideoURLs()
+        videoURLs.map(url => {
+            this.view.renderVideo({ url, userId })
+        })
     }
 }

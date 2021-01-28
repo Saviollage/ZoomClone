@@ -1,5 +1,5 @@
 class Media {
-    async getCamera(audio = false, video = true, deviceId) {
+    async getCamera(audio = true, video = true, deviceId) {
         let id = deviceId;
         if (!deviceId) {
             const deviceList = await this.listDevices()
